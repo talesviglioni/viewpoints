@@ -252,9 +252,7 @@ Scenario MoveAndDeliverFromAtoE {
         THEN AGV2atachPartX {
           AGV2.Atach
 	}
-      ON cmdAGV2UnloadE					 Example of the new SysADL elements for Environments and Scenarios
-
-
+      ON cmdAGV2UnloadE					 
         THEN AGV2detachPartX {
           AGV2.Detach
 	}
