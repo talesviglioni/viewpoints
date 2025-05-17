@@ -1,11 +1,11 @@
-Environment MyFactory {
+EnvironmentDefinition MyFactory {
 
 	Entity def Station {
-		properties {
+		properties {Role
 			Property def ID
 		}
-		interfaces {
-			Interface def signal 
+		roles {
+			Role def signal 
 		}
 	}
 
@@ -14,255 +14,307 @@ Environment MyFactory {
 			Property def ID
 			Property def location
 		}
-		interfaces {
-			Interface def surface 
+		roles {
+			Role def surface 
 		}
 	}
 
-	Entity def Supervisory as SupervisorySystem {
-		interfaces {
-			Interface inNotification as SupervisorySystem.InNotificationToSupervisory 
-			Interface outCommand as SupervisorySystem.OutVehicleData 
+	Entity def Lane {
+		entities {
+			Station[]
 		}
 	}
 
-	Entity def AGV as AGVSystem {
-		interfaces {
-			Interface def outNotification as AGVSystem.OutNotificationToSupervisory
-			Interface def inCommand as AGVSystem.InVehicleData
-			Interface def sensor as ArrivalSensor	
-			Interface def arm as RobotArm
+	Entity def Supervisory {
+		roles {
+			Role inNotification   
+			Role outCommand   
+		}
+	}
+
+	Entity def Vehicle {
+		roles {
+			Role def outNotification 
+			Role def inCommand  
+			Role def sensor  	
+			Role def arm  
 		}
 		properties {
 			Property def location
 		}
 	}
 
-	Interaction def Notify {
+	Connection def Notify {
 		from AGV.outNotification to Supervisory.inNotification
 	}
 	
-	Interaction def Command {
+	Connection def Command {
 		from Supervisory.outCommand to AGV.inCommand 
 	}
 
-	Interaction def Location {
+	Connection def Location {
 		from Station.signal to AGV.sensor
 	}
 
-	Interaction def Atach {
+	Connection def Atach {
 		from AGV.arm to PartX.surface
 	}
 
-	Interaction def Detach {
+	Connection def Detach {
 		from AGV.arm to PartX.surface
 	}
 }
 
-Scenario MoveAndDeliverFromAtoE {
+EnvironmentConfiguration MyFactoryConfiguration to MyFactory {  
+    
+  Vehicle:AGVSystem
+  Vehicle.outNotification:AGVSystem.OutNotificationToSupervisory
+  Vehicle.inCommand:AGVSystem.InVehicleData
+  Vehicle.sensor:ArrivalSensor	
+  Vehicle.arm:RobotArm
 
-  EnvironmentConfiguration to MyFactory {  
-
-    AGV1:AGV
-    AGV2:AGV
+  Supervisory:SupervisorySystem
+  Supervisory.inNotification:SupervisorySystem.InNotificationToSupervisory 
+  Supervisory.outCommand:SupervisorySystem.OutVehicleData 
+    
+  AGV1:Vehicle
+  AGV2:Vehicle
  
-    StationA:Station    
-    StationA.ID = "StationA"
+  StationA:Station    
+  StationA.ID = "StationA"
  
-    StationB:Station 
-    StationB.ID = "StationB"
+  StationB:Station 
+  StationB.ID = "StationB"
 
-    StationC:Station 
-    StationC.ID = "StationC"
+  StationC:Station 
+  StationC.ID = "StationC"
 
-    StationD:Station 
-    StationD.ID = "StationD"
+  StationD:Station 
+  StationD.ID = "StationD"
 
-    StationE:Station
-    StationE.ID = "StationE"
+  StationE:Station
+  StationE.ID = "StationE"
 
-    Supervisor:Supervisory      
-  }
-   
-  Events {
-    Event def SupervisoryEvents for Supervisor {
-      ON start 						 
-        THEN cmdAGV2toC {
-          Supervisor.outCommand.destination=StationC
-          Supervisor.outCommand.armCommand=idle
-          :Command(Supervisor, AGV2) 			
-	}
-        THEN cmdAGV1toA {				 
-          Supervisor.outCommand.destination=StationA
-          Supervisor.outCommand.armCommand=idle
-          :Command(Supervisor, AGV1) 			
-	}
-      ON AGV1NotifLoad					 
-        THEN cmdAGV1toC {
-          Supervisor.outCommand.destination=StationA
-          Supervisor.outCommand.armCommand=idle
-          :Command(Supervisor, AGV1) 			
-	}
-      ON AGV1NotifArriveA				  
-        THEN cmdAGV1loadA{
-          Supervisor.outCommand.destination=StationA
-          Supervisor.outCommand.armCommand=load
-          :Command(Supervisor, AGV1) 
-	}
-      ON AGV1NotifArriveC				 
-        THEN cmdAGV1UnloadA{
-          Supervisor.outCommand.destination=StationA
-          Supervisor.outCommand.armCommand=unload
-          :Command(Supervisor, AGV1) 
-	}
-      ON AGV1NotifArriveAUnoaded			  
-        THEN cmdAGV2loadC{
-          Supervisor.outCommand.destination=StationC
-          Supervisor.outCommand.armCommand=load
-          :Command(Supervisor, AGV2) 
-	}
-      ON AGV2NotifLoad					 
-        THEN cmdAGV2toE {
-          Supervisor.outCommand.destination=StationE
-          Supervisor.outCommand.armCommand=idle
-          :Command(Supervisor, AGV2) 	
-      ON AGV2NotifArriveE				 
-        THEN cmdAGV2UnloadE{
-          Supervisor.outCommand.destination=StationE
-          Supervisor.outCommand.armCommand=unload
-          :Command(Supervisor, AGV2) 
-	}
-	
-    }
-
-    Event def AGV1Events for AGV1 {
-      ON cmdAGV1toA					 
-        THEN AGV1NotifTravelA {
-          AGV1.outNotification.notification="traveling"
-          :Notify(AGV1, Supervisor)				   
-	}
-      ON AGV1locationStationB				 
-        THEN AGV1NotifPassB {
-          AGV1.outNotification.notification="passed"
-          :Notify(AGV1, Supervisor)				   
-	}
-      ON AGV1locationStationC				 
-        THEN AGV1NotifArriveC {
-          AGV1.outNotification.notification="arrived"
-          :Notify(AGV1, Supervisor)				   
-	}
-      ON AGV1locationStationA									
-        THEN AGV1NotifArriveA {				 
-          AGV1.outNotification.notification="arrived"
-          :Notify(AGV1, Supervisor)				   
-	}
-      ON AGV1atachPartX					 
-        THEN AGV1NotifLoad {
-          AGV1.outNotification.notification="loaded"
-          :Notify(AGV1, Supervisor)				   
-	}
-      ON AGV1detachPartX				 
-        THEN AGV1NotifArriveAUnoaded {
-          AGV1.outNotification.notification="unloaded"
-          :Notify(AGV1, Supervisor)				   
-	}
-      ON AGV2detachPartX				 
-        THEN AGV2NotifArriveAUnoaded {
-          AGV1.outNotification.notification="unloaded"
-          :Notify(AGV2, Supervisor)				   
-	}
-    }
-
-    Event def AGV2Events for AGV2 {
-      ON cmdAGV2toC					 
-        THEN AGV2NotifTravelC {
-          AGV2.outNotification.notification="traveling"
-          :Notify(AGV2, Supervisor)				   
-	}    
-      ON AGV2locationStationC									
-        THEN AGV2NotifArriveC {				 
-          AGV2.outNotification.notification="arrived"
-          :Notify(AGV2, Supervisor)				   
-	}
-     ON AGV2atachPartX					 
-        THEN AGV2NotifLoad {
-          AGV2.outNotification.notification="loaded"
-          :Notify(AGV2, Supervisor)				   
-	}
-      ON AGV2locationStationD				 
-        THEN AGV2NotifPassD {
-          AGV2.outNotification.notification="passed"
-          :Notify(AGV2, Supervisor)				   
-	}
-      ON AGV2locationStationE				 
-        THEN AGV2NotifArriveE {
-          AGV2.outNotification.notification="arrived"
-          :Notify(AGV2, Supervisor)				   
-	}
-    }
-
-    Event def StationAEvents for StationA {		 
-      ON AGV1.sensor == StationA	
-        THEN AGV1locationStationA {
-          AGV1.location = Sensor.signal
-	}
-    }
-
-    Event def StationBEvents for StationB {
-      ON AGV1.sensor == StationB	
-        THEN AGV1locationStationB {			 
-          AGV1.location = Sensor.signal
-	}
-    }
-
-    Event def StationCEvents for StationC {		 
-      ON AGV1.sensor == StationC				
-        THEN AGV1locationStationC {
-          AGV1.location = Sensor.signal
-	}
-      ON AGV2.sensor == StationC			 	
-        THEN AGV2locationStationC {
-          AGV2.location = Sensor.signal
-	}
-    }
-
-    Event def StationDEvents for StationD {
-      ON AGV2.sensor == StationD	
-        THEN AGV2locationStationD {			 
-          AGV2.location = Sensor.signal
-	}
-    }
-
-    Event def StationEEvents for StationE {		 
-      ON AGV2.sensor == StationE				
-        THEN AGV2locationStationE {
-          AGV2.location = Sensor.signal
-	}
-
-    Event def PartXEvents for Part {
-      ON cmdAGV1loadA					 
-        THEN AGV1atachPartX {
-          AGV1.Atach
-	}
-      ON cmdAGV1UnloadA					 
-        THEN AGV1detachPartX {
-          AGV1.Detach
-	}
-      ON cmdAGV2loadC					 
-        THEN AGV2atachPartX {
-          AGV2.Atach
-	}
-      ON cmdAGV2UnloadE					 
-        THEN AGV2detachPartX {
-          AGV2.Detach
-	}
-    }
-  }
-  
-  ScenarioExecution {
-    AGV1.location = StationC
-    AGV2.location = StationD
-    Part.location = StationA
-    start
-  }  
+  Supervisor:Supervisory      
 }
+
+EventsDefinitions MyEvents to MyFactoryConfiguration {
+  Event def SupervisoryEvents for Supervisor {
+    ON cmdSupervisor 
+      THEN cmdAGV2toC {
+        Supervisor.outCommand.destination=StationC
+        Supervisor.outCommand.armCommand=idle
+        :Command(Supervisor, AGV2) }
+      THEN cmdAGV1toA {				 
+        Supervisor.outCommand.destination=StationA
+        Supervisor.outCommand.armCommand=idle
+        :Command(Supervisor, AGV1) }
+    ON AGV1NotifLoad					 
+      THEN cmdAGV1toC {
+        Supervisor.outCommand.destination=StationA
+        Supervisor.outCommand.armCommand=idle
+        :Command(Supervisor, AGV1) }
+    ON AGV1NotifArriveA				  
+      THEN cmdAGV1loadA{
+        Supervisor.outCommand.destination=StationA
+        Supervisor.outCommand.armCommand=load
+        :Command(Supervisor, AGV1) }
+    ON AGV1NotifArriveC				 
+      THEN cmdAGV1UnloadA{
+          Supervisor.outCommand.destination=StationA
+          Supervisor.outCommand.armCommand=unload
+          :Command(Supervisor, AGV1) }
+    ON AGV1NotifArriveAUnoaded			  
+      THEN cmdAGV2loadC{
+        Supervisor.outCommand.destination=StationC
+        Supervisor.outCommand.armCommand=load
+        :Command(Supervisor, AGV2) }
+    ON AGV2NotifLoad				 
+      THEN cmdAGV2toE {
+        Supervisor.outCommand.destination=StationE
+        Supervisor.outCommand.armCommand=idle
+        :Command(Supervisor, AGV2) 	
+    ON AGV2NotifArriveE				 
+      THEN cmdAGV2UnloadE{
+        Supervisor.outCommand.destination=StationE
+        Supervisor.outCommand.armCommand=unload
+        :Command(Supervisor, AGV2) }   
+  }
+  Event def AGV1Events for AGV1 {
+    ON cmdAGV1toA
+      THEN AGV1NotifTravelA {
+        AGV1.outNotification.notification="traveling"
+        :Notify(AGV1, Supervisor) }
+    ON AGV1locationStationB				 
+      THEN AGV1NotifPassB {
+        AGV1.outNotification.notification="passed"
+        :Notify(AGV1, Supervisor) }
+    ON AGV1locationStationC				 
+      THEN AGV1NotifArriveC {
+        AGV1.outNotification.notification="arrived"
+        :Notify(AGV1, Supervisor) }
+    ON AGV1locationStationA									
+      THEN AGV1NotifArriveA {				 
+        AGV1.outNotification.notification="arrived"
+        :Notify(AGV1, Supervisor) }
+    ON AGV1atachPartX					 
+      THEN AGV1NotifLoad {
+        AGV1.outNotification.notification="loaded"
+        :Notify(AGV1, Supervisor) }
+    ON AGV1detachPartX				 
+      THEN AGV1NotifArriveAUnoaded {
+        AGV1.outNotification.notification="unloaded"
+        :Notify(AGV1, Supervisor) } 
+  }
+  Event def AGV2Events for AGV2 {
+    ON cmdAGV2toC					 
+      THEN AGV2NotifTravelC {
+        AGV2.outNotification.notification="traveling"
+        :Notify(AGV2, Supervisor) }    
+    ON AGV2locationStationC				
+      THEN AGV2NotifArriveC {	
+        AGV2.outNotification.notification="arrived"
+        :Notify(AGV2, Supervisor) }
+    ON AGV2atachPartX
+      THEN AGV2NotifLoad {
+        AGV2.outNotification.notification="loaded"
+        :Notify(AGV2, Supervisor) }
+    ON AGV2locationStationD	
+      THEN AGV2NotifPassD {
+        AGV2.outNotification.notification="passed"
+        :Notify(AGV2, Supervisor) }
+    ON AGV2locationStationE				 
+      THEN AGV2NotifArriveE {
+        AGV2.outNotification.notification="arrived"
+        :Notify(AGV2, Supervisor) }   
+    ON AGV2detachPartX				 
+      THEN AGV2NotifArriveAUnoaded {
+        AGV2.outNotification.notification="unloaded"
+        :Notify(AGV2, Supervisor) }  
+  }
+  Event def StationAEvents for StationA {		 
+    ON AGV1.sensor == StationA
+      THEN AGV1locationStationA {
+        AGV1.location = Sensor.signal } 
+  }
+  Event def StationBEvents for StationB {
+    ON AGV1.sensor == StationB	
+      THEN AGV1locationStationB {			 
+        AGV1.location = Sensor.signal }
+  }
+  Event def StationCEvents for StationC {		 
+    ON AGV1.sensor == StationC				
+      THEN AGV1locationStationC {
+        AGV1.location = Sensor.signal }
+    ON AGV2.sensor == StationC			 	
+      THEN AGV2locationStationC {
+        AGV2.location = Sensor.signal }
+  }
+  Event def StationDEvents for StationD {
+    ON AGV2.sensor == StationD	
+      THEN AGV2locationStationD {			 
+        AGV2.location = Sensor.signal }
+  }
+  Event def StationEEvents for StationE {		 
+    ON AGV2.sensor == StationE				
+      THEN AGV2locationStationE {
+        AGV2.location = Sensor.signal }
+  }
+  Event def PartXEvents for Part {
+    ON cmdAGV1loadA					 
+      THEN AGV1atachPartX {
+        AGV1.Atach }
+    ON cmdAGV1UnloadA					 
+      THEN AGV1detachPartX {
+        AGV1.Detach }
+    ON cmdAGV2loadC					 
+      THEN AGV2atachPartX {
+        AGV2.Atach }
+    ON cmdAGV2UnloadE					 
+      THEN AGV2detachPartX {
+        AGV2.Detach }
+  }
+}
+
+SceneDefinitions MyScenes to MyEvents {
+  Scene def SCN-MoveAGV1toA on { 
+    pre-condition {
+      AGV1.location == StationC
+      Part.location == StationA }
+    start cmdSupervisor
+    finish AGV1NotifArriveA
+    post-condition {
+      AGV1.location == StationA
+      Part.location == StationA }
+  }
+  Scene def SCN-MoveAGV2toC on { 
+    pre-condition {
+      AGV2.location == StationD
+      Part.location == StationA }
+    start cmdAGV2toC
+    finish AGV2NotifArriveC
+    post-condition {
+      AGV2.location == StationC 
+      Part.location == StationA }
+  }
+  Scene def SCN-AGV1movePartToC on { 
+    pre-condition {
+      AGV1.location = StationA
+      Part.location = StationA }
+    start AGV1NotifArriveA
+    finish AGV1detachPartX
+    post-condition {
+      AGV1.location == StationC 
+      Part.location == StationC }
+  }
+  Scene def SCN-AGV2movePartToE on { 
+    pre-condition {
+      AGV2.location == StationC
+      Part.location == StationC }
+    start AGV2NotifArriveC
+    finish AGV2detachPartX
+    post-condition {
+      AGV2.location == StationE
+      Part.location == StationE }
+  }
+}
+
+ScenarioDefinitions MyScenarios to MyScenes {
+  Scenario def Scenario1 {  			//Scenario standard
+    SCN-MoveAGV1toA
+    SCN-MoveAGV2toC
+    SCN-AGV1movePartToC
+    SCN-AGV2movePartToE
+  }
+  Scenario def Scenario2 {   			//Failing scenario
+    SCN-MoveAGV1toA
+    SCN-MoveAGV2toC
+    SCN-AGV2movePartToE                         //Moving part to E before move it to C
+    SCN-AGV1movePartToC
+  }
+  Scenario def Scenario3 { 			//Taking 5 parts from A to C
+     var i=1
+     while i < 5 {
+       SCN-MoveAGV1toA
+       SCN-AGV1movePartToC
+       i++
+     }
+  }
+  Scenario def Scenario4 { 			//Executing Scenario1 5 times
+     var i=1
+     while i < 5 {
+       Scenario1
+       i++ }
+  }
+}
+
+ScenarioExecution to MyScenarios {
+  AGV1.location = StationC
+  AGV2.location = StationD
+  Part.location = StationA 
+  Scenario1
+  Scenario2
+  Scenario3
+  Scenario4
+  repeat 5 Scenario1 				//Repeat 5 times the Scenario1 execution (like Scenario4)
+}  
