@@ -327,13 +327,19 @@ ScenarioDefinitions MyScenarios to MyScenes {
        i++; }
   }
 }
+
 ScenarioExecution to MyScenarios {
   agv1.location = stationC.ID;
   agv2.location = stationD.ID;
   part.location = stationA.ID;
   
+  // Example 1: Trigger after specific scene
   inject AGV2atStationD after SCN_MoveAGV1toA;
+
+  // Example 2: Trigger after specific task
   inject AGV1atStationA after cmdAGV1toA;
+  
+  // Example 3: Trigger when a condition is met
   inject SetAGV2SensorStationD when agv1.location == stationA.ID;
   
   Scenario1;
