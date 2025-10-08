@@ -143,7 +143,7 @@ package ConnectorsAGV {
 		}
 		~ cmIPT : inCommandToMotor {
 		}
-		flows: /*Se der um Ctrl+space aqui ele n�o mostra as op��es do escopo*/ CommandToMotor from /*Se der um Ctrl+space aqui ele n�o mostra as op��es do escopo*/ cmOPT to cmIPT
+		flows: CommandToMotor from cmOPT to cmIPT
 	}
 	connector def interactionAGVAndSupervisory {
 		participants: ~ iagvs : IAGVSystem {
@@ -152,7 +152,7 @@ package ConnectorsAGV {
 		}
 		configuration {
 			connectors:
-			nS : notifySupervisory bindings /*Se der um Ctrl+space aqui ele n�o mostra as op��es do escopo*/ outNotifications = inNotifications; 
+			nS : notifySupervisory bindings outNotifications = inNotifications; 
 			sVD : sendVehicleData bindings outMoveToStation = inMoveToStation;
 		}
 	}
@@ -249,9 +249,9 @@ package ComponentsAGV {
 			ackArm : notificationArm bindings started = startedArm; 
 			cmdArm : commandArm bindings startArm = start;
 			ackMotor : notificationMotor bindings started_stopped_out = started_stopped_in;
-			cmdMotor : commandMotor bindings /*Se der um Ctrl+space aqui ele n�o mostra as op��es do escopo apesar de s� aceitar as op��es definidas no escopo*/ start_stop_out = start_stop_in;
+			cmdMotor : commandMotor bindings start_stop_out = start_stop_in;
 			delegations:
-			/*Se der um Ctrl+space aqui ele n�o mostra as op��es do escopo apesar de s� aceitar as op��es definidas no escopo*/ sendStatus to sendStatus 
+			sendStatus to sendStatus 
 			in_outData to in_outData
 		}
 	}
@@ -1095,13 +1095,13 @@ ScenarioExecution to MyScenarios {
   agv2.location = stationD.ID;
   part.location = stationA.ID;
   
-  // Exemplo 1: Disparar após scene específica
+  // Example 1: Trigger after specific scene
   inject AGV2atStationD after SCN_MoveAGV1toA;
 
-  // exemplo
+  // Example 2: Trigger after specific task
   inject AGV1atStationA after cmdAGV1toA;
   
-  // Exemplo 2: Disparar quando condição for atendida  
+  // Example 3: Trigger when a condition is met
   inject SetAGV2SensorStationD when agv1.location == stationA.ID;
   
   Scenario1;
